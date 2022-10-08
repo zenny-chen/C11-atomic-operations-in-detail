@@ -127,7 +127,7 @@ ATOMIC_LLONG_LOCK_FREE
 ATOMIC_POINTER_LOCK_FREE
 ```
 
-有了这些预定义宏之后，我们就能判定在当前编译环境下可用那些原子操作了。当然，如果当前编译环境能支持原子操作的话，那么它至少应该能支持 **`atomic_flag`** 类型。该类型是一个原子标志对象，用于flag test and set原子操作。如果当前的CPU不支持flag test and set，但支持SWAP，那么也可以用SWAP来实现该操作。此外，其他lock-free的原子操作也都能实现flag test and set，包括原子加法、原子逻辑操作、CAS等。因此**原子标志操作**属于整个原子操作中最最基本的操作方式。我们稍后将会对这些原子操作做具体介绍。
+有了这些预定义宏之后，我们就能判定在当前编译环境下可用那些原子操作了。当然，如果当前编译环境能支持原子操作的话，那么它至少应该能支持 **`atomic_flag`** 类型。该类型是一个原子标志对象，用于flag test and set原子操作。如果当前的CPU不支持flag test and set，但支持SWAP，那么也可以用SWAP来实现该操作。此外，其他lock-free的原子操作也都能实现flag test and set，包括原子加法、原子逻辑操作、CAS等。因此 **原子标志操作** 属于整个原子操作中最最基本的操作方式。我们稍后将会对这些原子操作做具体介绍。
 
 对于其他整数类型，如果当前编译环境能支持的话（可根据上面列出的预定义宏来判断），都有其相对应的原子类型。尽管C11标准引入了 **`_Atomic`** 宏，我们可用它将一个基本整数类型转换为对应的原子类型，比如：
 ```c
@@ -816,7 +816,7 @@ typedef enum memory_order {
 
 我们如何来理解基于多核多线程的存储器次序呢？对于不同线程所观察到的若干变量的读写次序而有所不同，是如何引发的呢？这得从多核处理器的存储器结构层级说起。
 
-![memory-hierarchy](https://github.com/zenny-chen/C11-atomic-operations-in-detail/blob/master/memory-hierarchy.png)
+![memory-hierarchy](memory-hierarchy.png)
 
 现代多核处理器的存储器层级一般分为多个层，最靠近CPU的为L1 Cache，容量最小但速度最快，并且它是仅针对一个处理器核心独享的。
 然后再向外一层是L2 Cache，在某些移动设备上，它是被所有核心共享的，而在其他一些设备以及主流的桌面处理器上它也是被单个核心独享的，并且其容量比L1 Cache更大一些，速度也稍慢一些。
@@ -826,7 +826,7 @@ typedef enum memory_order {
 
 所以我们看到，我们用C语言写一句看似很简单的加载或存储赋值语句，而对于CPU来说可能要做非常多的工作，这其中就是既要保证一定的访存效率，还得保证Cache缓存的数据一致性等。因此，对于现代不少种类的处理器架构而言，都在其系统中引入了更弱的存储器次序，使得整个访存效率能得以提升。下面我们举一个相对比较容易理解的一个例子来说明这种所谓的观察到的存储器次序不同的情景。
 
-![Cache](https://github.com/zenny-chen/C11-atomic-operations-in-detail/blob/master/cache.png)
+![Cache](cache.png)
 
 上图中展示了一个具有三层Cache层级，并且有两个处理器核心的系统。向下箭头表示存储（写）操作；向上箭头表示加载（读）操作。并且左边的操作时序早于右边的操作。这里有两个被两个核心线程所共享的变量x和y，同时假定右边的核心线程先做 y = 0 的存储操作，使得在它的Cache中都安排好了存放变量y的Cache条目（entry），并且假定此时没有关于任何针对变量x的Cache条目。
 
@@ -875,7 +875,7 @@ void atomic_thread_fence(memory_order order);
 
 为了帮助大家理解获得语义和释放语义，笔者这里通过“基于锁的”原子操作更形象地帮助大家理解。
 
-![memory-order](https://github.com/zenny-chen/C11-atomic-operations-in-detail/blob/master/memory-order.png)
+![memory-order](memory-order.png)
 
 上图中，虚线箭头表示当前线程的释放操作对其他线程可见。（）里的单词描述了当前操作所使用的存储器次序。如果没有（），则表示使用松弛的存储器次序。
 我们可以看到，这里线程B先执行，线程A后执行，然后一开始是在当前上下文中针对某个数组做求和计算，然后把结果给sum。大家注意，这里的sum是在当前线程中独有的，而不是多线程共享的。因此整个操作不采用任何存储器次序，换句话说，其存储器次序是松弛的。
